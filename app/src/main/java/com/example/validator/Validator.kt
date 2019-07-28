@@ -25,32 +25,21 @@ class Validator {
 
     fun validate(): Boolean {
         var valid = true
-        rules?.forEach { entry ->
+        rules?.forEach rules@{ entry ->
             val view = entry.key.get()
             if (view != null) {
                 entry.value.forEach { rule ->
-                    val invalidRules = mutableListOf<Rule<View>>()
                     if (!rule.isValid(view)) {
-                        invalidRules.add(rule)
+                        rule.onInvalid(view)
+                        valid = false
+                        return@rules
                     } else {
                         rule.onValid(view)
-                    }
-                    if (invalidRules.size > 0) {
-                        valid = false
-                        showPriorityError(view, invalidRules)
                     }
                 }
             }
         }
         return valid
-    }
-
-    private fun showPriorityError(view: View, invalidRules: List<Rule<View>>) {
-        val highestPriority = requireNotNull(invalidRules.map { it.priority }.max())
-        println()
-        invalidRules.filter { it.priority == highestPriority }.forEach {
-            it.onInvalid(view)
-        }
     }
 }
 
@@ -62,18 +51,18 @@ class ValidatorConfigurator {
 
     fun <V : View> on(view: V, action: RulesBuilder<V>.() -> Unit) {
         val builder = RulesBuilder<V>().apply(action)
-        @Suppress("UNCHECKED_CAST")
-        _rules[WeakReference(view as View)] = builder.rules as List<Rule<View>>
+        _rules[WeakReference(view as View)] = builder.rules
     }
 }
 
 @ValidatorDsl
 class RulesBuilder<V : View> {
-    private val _rules = mutableListOf<Rule<V>>()
-    val rules: List<Rule<V>> = _rules
+    private val _rules = mutableListOf<Rule<View>>()
+    val rules: List<Rule<View>> = _rules
 
     fun add(rule: Rule<V>) {
-        _rules.add(rule)
+        @Suppress("UNCHECKED_CAST")
+        _rules.add(rule as Rule<View>)
     }
 }
 

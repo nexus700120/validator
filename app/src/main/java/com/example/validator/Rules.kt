@@ -6,8 +6,6 @@ import android.widget.EditText
 
 interface Rule<in V : View> {
 
-    val priority: Int
-
     fun init(view: V)
 
     fun isValid(view: V): Boolean
@@ -19,8 +17,6 @@ interface Rule<in V : View> {
 
 abstract class RuleAdapted<V : View> : Rule<V> {
 
-    override val priority: Int = 0
-
     override fun init(view: V) = Unit
 
     override fun onValid(view: V) = Unit
@@ -29,8 +25,6 @@ abstract class RuleAdapted<V : View> : Rule<V> {
 }
 
 class NotEmptyRule : RuleAdapted<EditText>() {
-
-    override val priority: Int = 10
 
     override fun init(view: EditText) {
         val original = view.onFocusChangeListener
