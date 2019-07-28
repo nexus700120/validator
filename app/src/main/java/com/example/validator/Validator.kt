@@ -8,14 +8,16 @@ annotation class ValidatorDsl
 
 class Validator {
 
-    private var rules: Map<WeakReference<View>, List<Rule<View>>>? = null
+    private var rules = mutableMapOf<WeakReference<View>, List<Rule<View>>>()
 
     operator fun invoke(@ValidatorDsl action: ValidatorConfigurator.() -> Unit) {
         val configurator = ValidatorConfigurator().apply(action)
-        rules = configurator.rules
-        rules?.forEach { entry ->
-            val view = entry.key.get()
-            if (view != null) {
+        rules.clear()
+        configurator.rules.forEach {
+            rules[WeakReference(it.key)] = it.value
+        }
+        rules.forEach { entry ->
+            entry.key.get()?.let { view ->
                 entry.value.forEach { rule ->
                     rule.init(view)
                 }
@@ -25,9 +27,8 @@ class Validator {
 
     fun validate(): Boolean {
         var valid = true
-        rules?.forEach rules@{ entry ->
-            val view = entry.key.get()
-            if (view != null) {
+        rules.forEach rules@{ entry ->
+            entry.key.get()?.let { view ->
                 entry.value.forEach { rule ->
                     if (!rule.isValid(view)) {
                         rule.onInvalid(view)
@@ -46,12 +47,12 @@ class Validator {
 @ValidatorDsl
 class ValidatorConfigurator {
 
-    private val _rules = mutableMapOf<WeakReference<View>, List<Rule<View>>>()
-    val rules: Map<WeakReference<View>, List<Rule<View>>> = _rules
+    private val _rules = mutableMapOf<View, List<Rule<View>>>()
+    val rules: Map<View, List<Rule<View>>> = _rules
 
     fun <V : View> on(view: V, action: RulesBuilder<V>.() -> Unit) {
         val builder = RulesBuilder<V>().apply(action)
-        _rules[WeakReference(view as View)] = builder.rules
+        _rules[view] = builder.rules
     }
 }
 
@@ -65,5 +66,3 @@ class RulesBuilder<V : View> {
         _rules.add(rule as Rule<View>)
     }
 }
-
-
